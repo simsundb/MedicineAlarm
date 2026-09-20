@@ -1,0 +1,13 @@
+# SwiftPM 编译中间产物（约 800MB，绝不入库）
+.build/
+
+# build_app.sh 组装出来的 .app
+build/
+
+# macOS 目录元数据
+.DS_Store
+
+# 旧版 Python 程序的备份。
+# 里面的 legacy-config.json 是个人用药时间表、plist 含家目录路径，
+# 而本仓库是公开的，所以整个目录留在本地不入库。
+.backup/
