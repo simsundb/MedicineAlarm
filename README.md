@@ -1,6 +1,7 @@
 # 吃药提醒（MedicineAlarm）
 
-macOS 原生菜单栏吃药提醒应用。到点弹出置顶窗口 + 循环响铃 + 语音播报，
+macOS 原生吃药提醒应用，**程序坞 + 菜单栏双入口**：程序坞图标负责好找，
+菜单栏图标负责一眼看到下一个闹钟。到点弹出置顶窗口 + 循环响铃 + 语音播报，
 必须手动点「已服用」或「稍后提醒」才会消失。
 
 针对本机环境：**Apple Silicon (M1) / macOS 26**，只用 Command Line Tools 构建，
@@ -22,6 +23,10 @@ macOS 原生菜单栏吃药提醒应用。到点弹出置顶窗口 + 循环响�
   超过窗口只记一笔「已错过」，不会一次性砸一堆过期弹窗。窗口默认 2 小时，可在设置里调
 - **暂停提醒**：可暂停 1 小时 / 4 小时 / 到当天结束
 - **免打扰日**：勾选周一~周日里的任意几天，那几天完全不弹窗、也不记「已错过」
+- **程序坞图标**：项目自绘（`Resources/make_icon.swift`，蓝青渐变 + 白色胶囊），不依赖外部素材；
+  点程序坞 / 访达 / 「应用程序」文件夹里的图标，会把主窗口带出来
+- **主窗口**：闹钟按早 / 中 / 晚三组排列，默认 520×720——出厂那 7 个闹钟正好铺满、
+  不出滚动条，闹钟更多时才滚动；右上角的齿轮按钮直接开设置
 - **设置窗口**：语音播报、提示音、补服窗口、免打扰日、开机自启都收在这里（详见「设置」一节）
 - **主菜单栏**：标准的应用 / 编辑 / 窗口菜单，文本框的 `⌘C` / `⌘V` 能用了，`⌘,` 开设置
 - **菜单栏状态**：图标旁边显示下一个闹钟时间，暂停时显示「暂停」、免打扰日显示「免打扰」
@@ -31,10 +36,15 @@ macOS 原生菜单栏吃药提醒应用。到点弹出置顶窗口 + 循环响�
 
 ## 设置
 
-两个入口，等价：
+三个入口，等价：
 
 - 鼠标点菜单栏 💊 图标 → 下拉菜单里的「设置…」
+- 主窗口右上角的齿轮按钮（在「新增」右边）
 - 应用激活时按 `⌘,`（标准主菜单栏里也有一份）
+
+窗口是**卡片式布局**（480×660），跟主窗口、服药记录同一套「页背景 + 圆角卡片」，
+而不是 macOS 原生的 `Form(.grouped)`（那套是「系统设置」的长相，放进这个应用里会格格不入）。
+每个分区一个图标和标题，下面跟一行灰色说明——设置项光有标题，过两个月自己都不记得当初为什么这么勾。
 
 | 设置项 | 可选值 | 默认 |
 |---|---|---|
@@ -74,8 +84,10 @@ macOS 原生菜单栏吃药提醒应用。到点弹出置顶窗口 + 循环响�
 
 想装到 `/Applications`：`INSTALL_DIR=/Applications ./build_app.sh`
 
-脚本会依次做这些事：`swift build -c release` → 用 Core Graphics 生成图标 →
-组装 `.app`（写 `Info.plist`、`PkgInfo`）→ **ad-hoc 签名** → `lsregister` 注册 → `open` 启动。
+脚本会依次做这些事：`swift build -c release` → 用 Core Graphics 生成图标
+（`Resources/make_icon.swift`，画一张 .iconset 再 `iconutil` 转 .icns，程序坞图标就是它）→
+组装 `.app`（写 `Info.plist`、`PkgInfo`，把 .icns 填进 `CFBundleIconFile`）→
+**ad-hoc 签名** → `lsregister` 注册 → `open` 启动。
 
 本机没有 Developer ID（`security find-identity` 返回 0 个身份），所以只能用 ad-hoc 签名。
 够本机运行；代价是不能公证，拷给别人需要对方先 `xattr -rd com.apple.quarantine` 才能打开。
@@ -100,7 +112,10 @@ macOS 原生菜单栏吃药提醒应用。到点弹出置顶窗口 + 循环响�
 
 ## 排查问题
 
-应用是菜单栏常驻（`LSUIElement`），没有 Dock 图标；退出走菜单栏的「退出」或 `⌘Q`。
+应用是「程序坞 + 菜单栏」双入口的常驻应用（激活策略 `.regular`，`Info.plist` 里已经
+没有 `LSUIElement` 了）。关掉所有窗口应用也不会退出——菜单栏还要靠它；
+退出走菜单栏的「退出」或 `⌘Q`。点程序坞 / 访达里的图标会把主窗口带出来
+（`applicationShouldHandleReopen`，之前没实现这个方法，点图标是「什么都没发生」）。
 `⌘,` 随时打开设置窗口。
 
 **看日志**：`NSLog` 会打出调度器心跳和每次触发原因。
@@ -136,7 +151,7 @@ log show --last 10m --predicate 'process == "MedicineAlarm"' --style compact
 
 ## 已知限制
 
-- **应用必须处于运行状态**才会响（已设开机自启 + 常驻菜单栏）。从菜单栏「退出」后就不会再提醒。
+- **应用必须处于运行状态**才会响（已设开机自启 + 程序坞 / 菜单栏常驻）。彻底退出应用后就不会再提醒。
 - 电脑**完全关机**期间的闹钟不会响，开机后超出补服窗口（默认 2 小时）的只会记为「已错过」。
 - 免打扰日**按星期几**判定，不认法定节假日和调休（没有可用的系统 API）。调休上班的周末
   仍然不会提醒，那天需要手动取消勾选。
@@ -151,7 +166,7 @@ log show --last 10m --predicate 'process == "MedicineAlarm"' --style compact
 
 ```
 Sources/MedicineAlarm/
-├── main.swift                    入口；另含 --self-test / --set-login-item 命令行分支
+├── main.swift                    入口；设 .regular 激活策略；另含 --self-test / --set-login-item 命令行分支
 ├── App/
 │   ├── AppDelegate.swift         组装各部件、生命周期
 │   ├── MainMenu.swift            主菜单栏（编辑菜单的 ⌘C/⌘V + 「设置…」的 ⌘,）
@@ -175,6 +190,9 @@ Sources/MedicineAlarm/
     ├── MainWindowController.swift / AlarmListView.swift / AlarmEditView.swift
     └── HistoryWindowController.swift / HistoryView.swift
 ```
+
+`Resources/make_icon.swift` 不在上面这棵树里——它是构建期的图标生成脚本，
+程序坞 / 访达里看到的那个药丸图标就是它画的，由 `build_app.sh` 调用。
 
 界面颜色全部走 `Theme.swift` 里的语义令牌，深浅色自动适配，文字对比度均 ≥ 4.5:1。
 

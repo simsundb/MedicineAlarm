@@ -111,8 +111,6 @@ $ICON_ENTRY
     <false/>
     <key>NSSupportsSuddenTermination</key>
     <false/>
-    <key>LSUIElement</key>
-    <true/>
 </dict>
 </plist>
 PLIST

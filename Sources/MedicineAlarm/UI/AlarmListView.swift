@@ -8,6 +8,8 @@ struct AlarmListView: View {
     /// 闹钟有变动时回调，带上被改动的那个（删除时传 nil）
     let onChanged: (Alarm?) -> Void
     let onTest: () -> Void
+    /// 打开设置窗口（跟菜单栏那个「设置…」是同一个）
+    let onSettings: () -> Void
 
     @State private var editing: Alarm?
     @State private var isAdding = false
@@ -97,6 +99,18 @@ struct AlarmListView: View {
             }
             .buttonStyle(.borderedProminent)
             .help("新增一个每日闹钟")
+
+            // 齿轮收在最后，且只留图标：主操作「新增」该占最右的位置，
+            // 而标题栏横向空间紧张，带文字的第四个按钮会把标题挤没。
+            Button(action: onSettings) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: Theme.IconSize.md, weight: .medium))
+                    .frame(width: 24, height: 24)
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help("打开设置（也可以按 ⌘,）")
+            .accessibilityLabel("设置")
         }
         .padding(.horizontal, Theme.Space.xl)
         .padding(.vertical, Theme.Space.lg)

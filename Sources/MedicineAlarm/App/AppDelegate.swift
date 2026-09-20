@@ -18,9 +18,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var preferencesObserver: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 菜单栏应用：不在 Dock 里占位置。
-        // Info.plist 里也设了 LSUIElement，这里再设一次是为了从命令行直接跑二进制时也一致。
-        NSApp.setActivationPolicy(.accessory)
+        // 程序坞 + 菜单栏双入口：程序坞图标负责好找（点它调 applicationShouldHandleReopen
+        // 把主窗口带出来），菜单栏图标负责一眼看到下一个闹钟。
+        // 之前是 .accessory（纯菜单栏、无程序坞图标），但那样图标藏在菜单栏里不好找。
+        NSApp.setActivationPolicy(.regular)
 
         // 装主菜单——主要是为了「编辑」菜单（文本框的 ⌘C/⌘V）
         // 和「设置…」的 ⌘, 快捷键。
@@ -46,7 +47,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 self?.statusBar.refreshTitle()
             },
-            onTest: { [weak self] in self?.popup.showTest() }
+            onTest: { [weak self] in self?.popup.showTest() },
+            // settingsWindow 在下面才创建，闭包捕获 self、调用时才读，所以顺序无所谓
+            onSettings: { [weak self] in self?.settingsWindow.show() }
         )
 
         historyWindow = HistoryWindowController(log: log)
@@ -133,6 +136,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // 关掉所有窗口后应用继续留着（菜单栏还要靠它）
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    /// 点程序坞 / Finder / 「应用程序」文件夹里的图标时，把主窗口带出来。
+    ///
+    /// 窗口全关掉之后应用并不退出（菜单栏还要靠它），此时用户点图标，
+    /// macOS 发来的就是这个 reopen 事件。不实现它，点图标就是「什么都没发生」——
+    /// 看起来像应用没启动成功。
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { mainWindow.show() }
+        return true
     }
 
     /// 如果这次是首次运行、且成功导入了旧版 Python 程序的配置，跟用户说一声。

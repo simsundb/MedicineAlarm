@@ -22,8 +22,9 @@ if arguments.contains("--login-item-status") {
     exit(0)
 }
 
-// 这是个菜单栏常驻应用（LSUIElement），没有 SwiftUI 的 Scene 生命周期，
-// 用 AppKit 的传统方式启动，窗口全部由 AppDelegate 手动管理。
+// 这是个「程序坞 + 菜单栏」双入口的常驻应用：
+// 程序坞图标负责好找，菜单栏图标负责一眼看到下一个闹钟。
+// 没有 SwiftUI 的 Scene 生命周期，用 AppKit 的传统方式启动，窗口全部由 AppDelegate 手动管理。
 //
 // 放在 main.swift 里用顶层代码，SPM 会把它当作可执行入口，
 // 不需要 @main / -parse-as-library。
@@ -32,5 +33,5 @@ let application = NSApplication.shared
 
 let delegate = AppDelegate()
 application.delegate = delegate
-application.setActivationPolicy(.accessory)
+application.setActivationPolicy(.regular)
 application.run()
